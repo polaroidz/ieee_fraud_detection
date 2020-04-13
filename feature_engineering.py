@@ -41,12 +41,19 @@ selected_cols += [target_column]
 
 sql = SparkSession.builder \
     .master("local") \
-    .appName("fn_ingest_raw_data") \
+    .appName("transform_data") \
     .getOrCreate()
 
+#df = sql.read \
+#    .format("parquet") \
+#    .load("/hdfs/fraud_detection/data/train_transaction.parquet")
+
 df = sql.read \
-    .format("parquet") \
-    .load("/hdfs/fraud_detection/data/train_transaction.parquet")
+    .format("csv") \
+    .option("sep", ",") \
+    .option("inferSchema", "true") \
+    .option("header", "true") \
+    .load("/hdfs/fraud_detection/raw/train_transaction.csv")
 
 df = df.select(selected_cols)
 
@@ -88,6 +95,15 @@ df = assembler.transform(df)
 
 df = df.select(["features", "isFraud"])
 
+print(df.columns)
+print(df.show(5))
+
+df.write \
+  .mode("overwrite") \
+  .format("parquet") \
+  .save("/hdfs/fraud_detection/data/train_features.parquet")
+
+"""
 lr = LogisticRegression(
     featuresCol="features", 
     labelCol="isFraud",
@@ -113,3 +129,4 @@ print("areaUnderROC: " + str(summary.areaUnderROC))
 
 #print("There are", df.count(), "lines")
 #print(df.cols)
+"""
