@@ -8,7 +8,9 @@ from pyspark.ml.classification import LogisticRegression
 
 # Hyperparameters
 
-NEGATIVE_SAMPLE_FRAC = 0.05
+UNDERSAMPLE_FRAC = 0.05
+
+# Load Data
 
 sql = SparkSession.builder \
     .master("local") \
@@ -19,7 +21,23 @@ df = sql.read \
   .format("parquet") \
   .load("/hdfs/fraud_detection/data/train_features.parquet")
 
-df = df.sampleBy("isFraud", fractions={0: NEGATIVE_SAMPLE_FRAC, 1: 1}, seed=42)
+# Undersampling
+
+#df = df.sampleBy("isFraud", fractions={0: UNDERSAMPLE_FRAC, 1: 1}, seed=42)
+#df = df.dropDuplicates()
+
+# Oversampling
+
+positive = df.where(df.isFraud == 1)
+negative = df.where(df.isFraud == 0)
+
+fraction = negative.count() / positive.count()
+
+positive = positive.sample(withReplacement=True, fraction=fraction, seed=42)
+
+df = positive.union(negative)
+
+# Model
 
 lr = LogisticRegression(
     featuresCol="features", 
