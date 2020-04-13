@@ -24,7 +24,12 @@ target_column = 'isFraud'
 
 cat_cols = [
     'ProductCD',
+    'card1',
+    'card2',
+    'card3',
     'card4',
+    'card5',
+    'card6',
     'P_emaildomain',
     'R_emaildomain'
 ]
@@ -82,17 +87,25 @@ cat_cols_idx = map(lambda x: "{}_idx".format(x), cat_cols)
 cat_cols_idx = list(cat_cols_idx)
 
 for col, col_idx in zip(cat_cols, cat_cols_idx):
-    indexer = StringIndexer(inputCol=col, outputCol=col_idx, handleInvalid="skip")
+    indexer = StringIndexer(inputCol=col, outputCol=col_idx, handleInvalid="keep")
     indexer = indexer.fit(df)
     
     df = indexer.transform(df)
 
     cat_indexers += [indexer]
 
+cat_cols_nan = map(lambda x: "{}_nan".format(x), cat_cols)
+cat_cols_nan = list(cat_cols_nan)
+
+v_imputer = Imputer(inputCols=cat_cols_idx, outputCols=cat_cols_nan, strategy="median")
+v_imputer = v_imputer.fit(df)
+
+df = v_imputer.transform(df)
+
 cat_cols_enc = map(lambda x: "{}_enc".format(x), cat_cols)
 cat_cols_enc = list(cat_cols_enc)
 
-encoder = OneHotEncoderEstimator(inputCols=cat_cols_idx, outputCols=cat_cols_enc)
+encoder = OneHotEncoderEstimator(inputCols=cat_cols_nan, outputCols=cat_cols_enc)
 encoder = encoder.fit(df)
 
 df = encoder.transform(df)
