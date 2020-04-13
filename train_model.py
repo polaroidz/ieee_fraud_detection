@@ -24,17 +24,32 @@ lr = LogisticRegression(
 )
 lr = lr.fit(df)
 
+print("MODEL SUMMARY")
+
 df = lr.transform(df)
 
 summary = lr.summary
 
+print("Accuracy")
+print(summary.accuracy)
+
+print("Precision by Label")
+print(summary.precisionByLabel)
+
+print("Precision by Label")
+print(summary.recallByLabel)
+
+print("False Positve Rate")
+print(summary.falsePositiveRateByLabel)
+
+print("True Positive Rate by Label")
+print(summary.truePositiveRateByLabel)
+
+print("Area Under ROC")
+print(summary.areaUnderROC)
+
 #print(df.columns)
 print(df.show(5))
 
-roc = summary.roc
-print("ROC COUNT:" + str(roc.count()))
-
-print("areaUnderROC: " + str(summary.areaUnderROC))
-
-#print("There are", df.count(), "lines")
-#print(df.cols)
+#roc = summary.roc
+#print("ROC COUNT:" + str(roc.count()))
