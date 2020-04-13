@@ -8,8 +8,17 @@ from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.feature import OneHotEncoderEstimator
 from pyspark.ml.feature import StringIndexer
 from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.feature import MinMaxScaler
+from pyspark.ml.feature import Imputer
+from pyspark.ml.feature import PCA
 
 from pyspark.ml.classification import LogisticRegression
+
+# Hyperparameters
+
+V_PCA_K = 35
+
+# Utilities
 
 target_column = 'isFraud'
 
@@ -36,8 +45,10 @@ selected_cols  = []
 selected_cols += num_cols
 selected_cols += cat_cols
 #selected_cols += c_cols
-#selected_cols += v_cols
+selected_cols += v_cols
 selected_cols += [target_column]
+
+# Loading Data
 
 sql = SparkSession.builder \
     .master("local") \
@@ -53,6 +64,8 @@ df = sql.read \
 
 df = df.select(selected_cols)
 
+# Numerical Columns
+
 for col in num_cols:
     df = df.withColumn(col, df[col] + 1)
     df = df.withColumn(col, F.log(col))
@@ -61,7 +74,9 @@ vec_num = VectorAssembler(inputCols=num_cols, outputCol="num_cols")
 
 df = vec_num.transform(df)
 
-indexers = []
+# Categorical Columns
+
+cat_indexers = []
 
 cat_cols_idx = map(lambda x: "{}_idx".format(x), cat_cols)
 cat_cols_idx = list(cat_cols_idx)
@@ -72,7 +87,7 @@ for col, col_idx in zip(cat_cols, cat_cols_idx):
     
     df = indexer.transform(df)
 
-    indexers += [indexer]
+    cat_indexers += [indexer]
 
 cat_cols_enc = map(lambda x: "{}_enc".format(x), cat_cols)
 cat_cols_enc = list(cat_cols_enc)
@@ -82,17 +97,44 @@ encoder = encoder.fit(df)
 
 df = encoder.transform(df)
 
+# V Columns
+
+v_cols_nan = map(lambda x: "{}_nan".format(x), v_cols)
+v_cols_nan = list(v_cols_nan)
+
+v_imputer = Imputer(inputCols=v_cols, outputCols=v_cols_nan, strategy="mean")
+v_imputer = v_imputer.fit(df)
+
+df = v_imputer.transform(df)
+
+v_assembler = VectorAssembler(inputCols=v_cols_nan, outputCol="v_cols", handleInvalid="skip")
+
+df = v_assembler.transform(df)
+
+v_minmax = MinMaxScaler(inputCol="v_cols", outputCol="v_scaled")
+v_minmax = v_minmax.fit(df)
+
+df = v_minmax.transform(df)
+
+v_pca = PCA(k=V_PCA_K, inputCol="v_scaled", outputCol="v_pca")
+v_pca = v_pca.fit(df)
+
+df = v_pca.transform(df)
+
+# Assembling Columns
+
 input_cols  = ["num_cols"]
+input_cols  = ["v_pca"]
 input_cols += cat_cols_enc
+
+print(df.select(input_cols).columns)
+df.select(input_cols).show(5)
 
 assembler = VectorAssembler(inputCols=input_cols, outputCol="features")
 
 df = assembler.transform(df)
 
 df = df.select(["features", "isFraud"])
-
-print(df.columns)
-print(df.show(5))
 
 df.write \
   .mode("overwrite") \

@@ -2,6 +2,8 @@ import pyspark
 
 from pyspark.sql import SparkSession
 
+from pyspark.sql import functions as F
+
 from pyspark.ml.classification import LogisticRegression
 
 sql = SparkSession.builder \
@@ -12,6 +14,8 @@ sql = SparkSession.builder \
 df = sql.read \
   .format("parquet") \
   .load("/hdfs/fraud_detection/data/train_features.parquet")
+
+df = df.sampleBy("isFraud", fractions={0: 0.05, 1: 1}, seed=42)
 
 lr = LogisticRegression(
     featuresCol="features", 
@@ -30,13 +34,16 @@ df = lr.transform(df)
 
 summary = lr.summary
 
+print("Labels")
+print(summary.labels)
+
 print("Accuracy")
 print(summary.accuracy)
 
 print("Precision by Label")
 print(summary.precisionByLabel)
 
-print("Precision by Label")
+print("Recall by Label")
 print(summary.recallByLabel)
 
 print("False Positve Rate")
