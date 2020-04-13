@@ -6,6 +6,10 @@ from pyspark.sql import functions as F
 
 from pyspark.ml.classification import LogisticRegression
 
+# Hyperparameters
+
+NEGATIVE_SAMPLE_FRAC = 0.05
+
 sql = SparkSession.builder \
     .master("local") \
     .appName("feature_engineering") \
@@ -15,7 +19,7 @@ df = sql.read \
   .format("parquet") \
   .load("/hdfs/fraud_detection/data/train_features.parquet")
 
-df = df.sampleBy("isFraud", fractions={0: 0.05, 1: 1}, seed=42)
+df = df.sampleBy("isFraud", fractions={0: NEGATIVE_SAMPLE_FRAC, 1: 1}, seed=42)
 
 lr = LogisticRegression(
     featuresCol="features", 

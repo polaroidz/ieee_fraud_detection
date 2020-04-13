@@ -25,8 +25,8 @@ target_column = 'isFraud'
 cat_cols = [
     'ProductCD',
     'card4',
-    #'P_emaildomain',
-    #'R_emaildomain'
+    'P_emaildomain',
+    'R_emaildomain'
 ]
 
 num_cols = [
@@ -34,7 +34,7 @@ num_cols = [
 ]
 
 v_cols = []
-for i in range(1, 339):
+for i in range(12, 339):
     v_cols.append('V{}'.format(i))
 
 c_cols = []
@@ -102,7 +102,7 @@ df = encoder.transform(df)
 v_cols_nan = map(lambda x: "{}_nan".format(x), v_cols)
 v_cols_nan = list(v_cols_nan)
 
-v_imputer = Imputer(inputCols=v_cols, outputCols=v_cols_nan, strategy="mean")
+v_imputer = Imputer(inputCols=v_cols, outputCols=v_cols_nan, strategy="median")
 v_imputer = v_imputer.fit(df)
 
 df = v_imputer.transform(df)
@@ -126,9 +126,6 @@ df = v_pca.transform(df)
 input_cols  = ["num_cols"]
 input_cols  = ["v_pca"]
 input_cols += cat_cols_enc
-
-print(df.select(input_cols).columns)
-df.select(input_cols).show(5)
 
 assembler = VectorAssembler(inputCols=input_cols, outputCol="features")
 
