@@ -1,0 +1,25 @@
+import pyspark
+
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+from pyspark.ml.classification import LogisticRegressionModel
+
+dataset_path   = "/hdfs/fraud_detection/data/train_features.parquet"
+model_path = "/hdfs/fraud_detection/models/lm.model"
+
+sql = SparkSession.builder \
+    .master("local") \
+    .appName("feature_engineering") \
+    .getOrCreate()
+
+df = sql.read \
+  .format("parquet") \
+  .load(dataset_path)
+
+lm = LogisticRegressionModel.load(model_path)
+
+df = lm.transform(df)
+
+df.show(10)
+

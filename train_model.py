@@ -1,14 +1,14 @@
 import pyspark
 
 from pyspark.sql import SparkSession
-
 from pyspark.sql import functions as F
 
 from pyspark.ml.classification import LogisticRegression
 
-# Hyperparameters
+# Arguments
 
-UNDERSAMPLE_FRAC = 0.05
+dataset_path   = "/hdfs/fraud_detection/data/train_features.parquet"
+model_out_path = "/hdfs/fraud_detection/models/lm.model"
 
 # Load Data
 
@@ -19,12 +19,7 @@ sql = SparkSession.builder \
 
 df = sql.read \
   .format("parquet") \
-  .load("/hdfs/fraud_detection/data/train_features.parquet")
-
-# Undersampling
-
-#df = df.sampleBy("isFraud", fractions={0: UNDERSAMPLE_FRAC, 1: 1}, seed=42)
-#df = df.dropDuplicates()
+  .load(dataset_path)
 
 # Oversampling
 
@@ -40,13 +35,13 @@ df = positive.union(negative)
 # Model
 
 lr = LogisticRegression(
-    featuresCol="features", 
-    labelCol="isFraud",
-    predictionCol="predictions",
-    maxIter=10,
-    regParam=0.0,
-    elasticNetParam=0.0,
-    threshold=0.5
+  featuresCol="features", 
+  labelCol="isFraud",
+  predictionCol="predictions",
+  maxIter=10,
+  regParam=0.0,
+  elasticNetParam=0.0,
+  threshold=0.5
 )
 lr = lr.fit(df)
 
@@ -77,8 +72,10 @@ print(summary.truePositiveRateByLabel)
 print("Area Under ROC")
 print(summary.areaUnderROC)
 
-#print(df.columns)
-print(df.show(5))
+roc = summary.roc.toPandas()
+roc.to_csv("./roc.csv", index=False)
 
-#roc = summary.roc
-#print("ROC COUNT:" + str(roc.count()))
+lr.write() \
+  .overwrite() \
+  .save(model_out_path)
+
