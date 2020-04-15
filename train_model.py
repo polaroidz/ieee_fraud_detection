@@ -14,7 +14,7 @@ model_out_path = "/hdfs/fraud_detection/models/lm.model"
 
 sql = SparkSession.builder \
     .master("local") \
-    .appName("feature_engineering") \
+    .appName("train_model") \
     .getOrCreate()
 
 df = sql.read \
@@ -31,6 +31,8 @@ fraction = negative.count() / positive.count()
 positive = positive.sample(withReplacement=True, fraction=fraction, seed=42)
 
 df = positive.union(negative)
+df = df.orderBy(F.rand())
+df = df.coalesce(4)
 
 # Model
 
